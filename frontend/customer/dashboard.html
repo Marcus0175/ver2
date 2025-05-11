@@ -114,17 +114,30 @@
     <script>
         document.addEventListener('DOMContentLoaded', async function () {
             try {
-                // Load user info
+                // Kiểm tra token
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    window.location.href = '../index.html';
+                    return;
+                }
+
+                // Lấy thông tin người dùng
                 const user = await api.getCurrentUser();
+                if (user.role !== 'customer') {
+                    logout();
+                    return;
+                }
+
                 document.getElementById('customer-name').textContent = user.username;
 
-                // Load active orders
+                // Tải đơn hàng đang hoạt động
                 loadActiveOrders();
 
-                // Load restaurants
+                // Tải danh sách nhà hàng
                 loadRestaurants();
             } catch (error) {
-                console.error('Error loading dashboard:', error);
+                console.error('Lỗi khi tải dashboard:', error);
+                logout();
             }
         });
 
@@ -133,50 +146,55 @@
                 const orders = await api.getMyOrders();
                 const activeOrdersContainer = document.getElementById('active-orders');
 
-                // Filter only active orders (not delivered or canceled)
+                // Lọc chỉ đơn hàng đang hoạt động (không phải đã giao hay đã hủy)
                 const activeOrders = orders.filter(order =>
                     order.status !== 'delivered' && order.status !== 'canceled'
                 );
 
                 if (activeOrders.length === 0) {
-                    activeOrdersContainer.innerHTML = '<div class="alert alert-info">No active orders.</div>';
+                    activeOrdersContainer.innerHTML = '<div class="alert alert-info">Không có đơn hàng đang hoạt động.</div>';
                     return;
                 }
 
                 let ordersHtml = '';
                 activeOrders.forEach(order => {
                     let statusBadgeClass = 'bg-secondary';
+                    let statusText = '';
+
                     switch (order.status) {
                         case 'pending':
                             statusBadgeClass = 'bg-warning';
+                            statusText = 'ĐANG CHỜ';
                             break;
                         case 'preparing':
                             statusBadgeClass = 'bg-info';
+                            statusText = 'ĐANG CHUẨN BỊ';
                             break;
                         case 'ready_for_delivery':
                             statusBadgeClass = 'bg-primary';
+                            statusText = 'SẴN SÀNG GIAO HÀNG';
                             break;
                     }
 
                     ordersHtml += `
-                        <div class="card mb-2">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0">Order #${order.id}</h6>
-                                    <span class="badge ${statusBadgeClass}">${order.status.replace('_', ' ').toUpperCase()}</span>
-                                </div>
-                                <p class="mb-0">Restaurant: ${order.branch_name}</p>
-                                <small class="text-muted">Total: $${parseFloat(order.total_amount).toFixed(2)}</small>
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Đơn hàng #${order.id}</h6>
+                                <span class="badge ${statusBadgeClass}">${statusText}</span>
                             </div>
+                            <p class="mb-0">Nhà hàng: ${order.branch_name}</p>
+                            <small class="text-muted">Tổng cộng: $${parseFloat(order.total_amount).toFixed(2)}</small>
                         </div>
-                    `;
+                    </div>
+                `;
                 });
 
                 activeOrdersContainer.innerHTML = ordersHtml;
 
             } catch (error) {
-                console.error('Error loading active orders:', error);
-                document.getElementById('active-orders').innerHTML = '<div class="alert alert-danger">Failed to load active orders.</div>';
+                console.error('Lỗi khi tải đơn hàng đang hoạt động:', error);
+                document.getElementById('active-orders').innerHTML = '<div class="alert alert-danger">Không thể tải đơn hàng đang hoạt động.</div>';
             }
         }
 
@@ -188,23 +206,23 @@
                 let branchesHtml = '';
                 branches.forEach(branch => {
                     branchesHtml += `
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">${branch.name}</h5>
-                                    <p class="card-text">${branch.address}</p>
-                                    <a href="order.html" class="btn btn-sm btn-outline-primary">Order from here</a>
-                                </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">${branch.name}</h5>
+                                <p class="card-text">${branch.address}</p>
+                                <a href="order.html" class="btn btn-sm btn-outline-primary">Đặt món từ đây</a>
                             </div>
                         </div>
-                    `;
+                    </div>
+                `;
                 });
 
                 restaurantsContainer.innerHTML = branchesHtml;
 
             } catch (error) {
-                console.error('Error loading restaurants:', error);
-                document.getElementById('restaurants').innerHTML = '<div class="alert alert-danger">Failed to load restaurants.</div>';
+                console.error('Lỗi khi tải danh sách nhà hàng:', error);
+                document.getElementById('restaurants').innerHTML = '<div class="alert alert-danger">Không thể tải danh sách nhà hàng.</div>';
             }
         }
     </script>
