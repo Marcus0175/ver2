@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../static/css/main.css">
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.html">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="order.html">
+                                Order Food
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="order-history.html">
+                                Order History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="profile.html">
+                                Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="logout()">
+                                Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div
+                    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">My Profile</h1>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Account Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="profile-data">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Order Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="order-stats">
+                                    <div class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/auth.js"></script>
+    <script src="../static/js/customer.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                // Load user info
+                const user = await api.getCurrentUser();
+
+                // Update profile data
+                const profileContainer = document.getElementById('profile-data');
+                profileContainer.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Username</label>
+                        <p>${user.username}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email</label>
+                        <p>${user.email}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">User ID</label>
+                        <p>${user.id}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Role</label>
+                        <p>${user.role}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Account Created</label>
+                        <p>${new Date(user.created_at).toLocaleDateString()}</p>
+                    </div>
+                `;
+
+                // Load orders for statistics
+                const orders = await api.getMyOrders();
+
+                // Calculate statistics
+                const totalOrders = orders.length;
+                const totalSpent = orders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0);
+
+                // Count by status
+                const ordersByStatus = {
+                    pending: 0,
+                    preparing: 0,
+                    ready_for_delivery: 0,
+                    delivered: 0,
+                    canceled: 0
+                };
+
+                orders.forEach(order => {
+                    ordersByStatus[order.status]++;
+                });
+
+                // Update order stats
+                const statsContainer = document.getElementById('order-stats');
+                statsContainer.innerHTML = `
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total Orders</label>
+                        <p>${totalOrders}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total Spent</label>
+                        <p>$${totalSpent.toFixed(2)}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Order Status Breakdown</label>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Pending
+                                <span class="badge bg-warning rounded-pill">${ordersByStatus.pending}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Preparing
+                                <span class="badge bg-info rounded-pill">${ordersByStatus.preparing}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Ready for Delivery
+                                <span class="badge bg-primary rounded-pill">${ordersByStatus.ready_for_delivery}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Delivered
+                                <span class="badge bg-success rounded-pill">${ordersByStatus.delivered}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Canceled
+                                <span class="badge bg-danger rounded-pill">${ordersByStatus.canceled}</span>
+                            </li>
+                        </ul>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        });
+    </script>
+</body>
+
+</html>
